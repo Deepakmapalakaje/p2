@@ -1,0 +1,13 @@
+# Ignore caches and env
+__pycache__/
+*.pyc
+.venv/
+
+# Ignore databases and logs
+database/*.db
+*.log
+
+# Ignore backups and temp
+TrendVision_Backup/
+*.tmp
+.DS_Store

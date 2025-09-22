@@ -1,0 +1,7 @@
+Flask==2.3.3
+Werkzeug==2.3.7
+flask-limiter==3.5.0
+psutil==5.9.5
+python-multipart==0.0.6
+sqlite3  # Built-in with Python
+zoneinfo  # Built-in with Python 3.9+

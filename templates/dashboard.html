@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="dashboard">
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="brand">
+      <span class="brand-icon">📊</span>
+      <span class="brand-name">TrendVision</span>
+    </div>
+    <div class="controls">
+      <div class="interval-tabs">
+        <button class="tab active" data-interval="1min">1M</button>
+        <button class="tab" data-interval="5min">5M</button>
+      </div>
+      <div class="status" id="pipeline-status">
+        <span class="status-dot"></span>
+        <span class="status-text">LIVE</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Left Panel - Market Data & Options -->
+    <div class="left-panel">
+      <div class="panel-header">
+        <h3>Market Overview</h3>
+        <div class="panel-actions">
+          <button class="action-btn" id="clear-btn" title="Refresh">⟳</button>
+        </div>
+      </div>
+
+      <!-- NIFTY & Future Data -->
+      <div class="market-overview">
+        <div class="market-item">
+          <div class="market-symbol">NIFTY 50</div>
+          <div class="market-price" id="nifty-price">Loading...</div>
+          <div class="market-change" id="nifty-change"></div>
+        </div>
+        <div class="market-item">
+          <div class="market-symbol">NIFTY FUT</div>
+          <div class="market-price" id="future-price">Loading...</div>
+          <div class="market-change" id="future-change"></div>
+        </div>
+      </div>
+
+      <!-- Cash Flow Section -->
+      <div class="cash-flow-section">
+        <div class="section-header">
+          <h4>Options Cash Flow</h4>
+        </div>
+        <div class="cash-metrics">
+          <div class="cash-item current">
+            <div class="cash-label">Current Cash</div>
+            <div class="cash-value" id="current-cash">₹0.00</div>
+          </div>
+          <div class="cash-item min">
+            <div class="cash-label">Min Cash</div>
+            <div class="cash-value" id="min-cash">₹0.00</div>
+          </div>
+          <div class="cash-item max">
+            <div class="cash-label">Max Cash</div>
+            <div class="cash-value" id="max-cash">₹0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cash Flow Section -->
+      <div class="cash-flow-section">
+        <div class="section-header">
+          <h4>Cash Flow (Live - 1min/5min)</h4>
+        </div>
+        <div class="cash-flow-tabs">
+          <button class="tab-btn active" data-interval="1min">1 Min</button>
+          <button class="tab-btn" data-interval="5min">5 Min</button>
+        </div>
+        <div class="cash-metrics">
+          <div class="cash-item current">
+            <div class="cash-label">Current Cash</div>
+            <div class="cash-value" id="current-cash">₹0.00</div>
+          </div>
+          <div class="cash-item min">
+            <div class="cash-label">Min Cash</div>
+            <div class="cash-value" id="min-cash">₹0.00</div>
+          </div>
+          <div class="cash-item max">
+            <div class="cash-label">Max Cash</div>
+            <div class="cash-value" id="max-cash">₹0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ITM Options Section -->
+      <div class="itm-options-section">
+        <div class="section-header">
+          <h4>1st ITM Options</h4>
+        </div>
+        <div class="nifty-price">
+          <div class="nifty-price-label">NIFTY Price</div>
+          <div class="nifty-price-value" id="nifty-price">₹0.00</div>
+        </div>
+        <div class="options-grid">
+          <div class="option-item ce">
+            <div class="option-type">CE</div>
+            <div class="option-strike" id="itm-ce-strike">-</div>
+            <div class="option-price" id="itm-ce-price">₹0.00</div>
+          </div>
+          <div class="option-item pe">
+            <div class="option-type">PE</div>
+            <div class="option-strike" id="itm-pe-strike">-</div>
+            <div class="option-price" id="itm-pe-price">₹0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Buy Signals Section -->
+      <div class="buy-signals-section">
+        <div class="section-header">
+          <h4>Recent Buy Signals</h4>
+        </div>
+        <div class="signals-list" id="signals-list">
+          <div class="no-signals">No recent signals</div>
+        </div>
+      </div>
+
+      <div class="market-feed" id="market-feed">
+        <!-- Signal updates will appear here -->
+      </div>
+    </div>
+
+    <!-- Right Panel - Signals & Stats -->
+    <div class="right-panel">
+      <!-- Trend Card -->
+      <div class="card">
+        <div class="card-header">
+          <h4>NIFTY 50 Trend</h4>
+          <div class="trend-indicator" id="trend-indicator">NEUTRAL</div>
+        </div>
+        <div class="card-content">
+          <div class="trend-display" id="trend-display">
+            <div class="trend-value">NEUTRAL</div>
+            <div class="trend-time" id="trend-time">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Buy Signal Card -->
+      <div class="card">
+        <div class="card-header">
+          <h4>Latest Buy Signal</h4>
+        </div>
+        <div class="card-content">
+          <div class="signal-display" id="signal-display">
+            <div class="signal-text">No active signals</div>
+            <div class="signal-details" id="signal-details"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Positions Card -->
+      <div class="card">
+        <div class="card-header">
+          <h4>Active Positions</h4>
+        </div>
+        <div class="card-content">
+          <div class="positions-list" id="active-positions">
+            <div class="no-positions">No active positions</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Signals -->
+      <div class="card">
+        <div class="card-header">
+          <h4>Recent Signals</h4>
+        </div>
+        <div class="card-content">
+          <div class="signals-list" id="recent-signals">
+            <div class="no-signals">No recent signals</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
