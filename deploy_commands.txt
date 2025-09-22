@@ -1,36 +1,36 @@
 # TrendVision Fresh VM Deployment Commands
-# Target VM: instance-20250921-125329 (asia-south1-b, 34.93.113.19)
+# Target VM: instance-20250922-072947 (asia-south1-b, 34.93.95.50)
 # Run these commands sequentially from Windows PowerShell after updating DNS records.
 
-# DNS propagation check (repeat until the address resolves to 34.93.113.19)
+# DNS propagation check (repeat until the address resolves to 34.93.95.50)
 nslookup trendvision2004.com
 
 # Step 1: Update package index and upgrade base system
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="sudo apt update && sudo apt upgrade -y"
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="sudo apt update && sudo apt upgrade -y"
 
 # Step 2: Install required system packages
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="sudo apt install -y python3 python3-pip python3-venv nginx certbot python3-certbot-nginx git htop curl unzip build-essential"
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="sudo apt install -y python3 python3-pip python3-venv nginx certbot python3-certbot-nginx git htop curl unzip build-essential"
 
 # Step 3: Create dedicated system user
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="sudo adduser --system --group --no-create-home trendvision"
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="sudo adduser --system --group --no-create-home trendvision"
 
 # Step 4: Prepare application directory ownership
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="sudo mkdir -p /opt/trendvision && sudo chown $USER:$USER /opt/trendvision"
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="sudo mkdir -p /opt/trendvision && sudo chown $USER:$USER /opt/trendvision"
 
 # Step 5: Clone the TrendVision repository
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="cd /opt/trendvision && git clone https://github.com/Deepakmapalakaje/TrendVision.git ."
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="cd /opt/trendvision && git clone https://github.com/Deepakmapalakaje/p2.git ."
 
 # Step 6: Create virtual environment and install Python dependencies
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="cd /opt/trendvision && python3 -m venv venv && source venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt && deactivate"
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="cd /opt/trendvision && python3 -m venv venv && source venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt && deactivate"
 
 # Step 7: Create application directories
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="cd /opt/trendvision && mkdir -p config database logs"
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="cd /opt/trendvision && mkdir -p config database logs"
 
 # Step 8: Create production configuration file
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="cd /opt/trendvision && echo '{\"ACCESS_TOKEN\": \"update-daily-in-admin-panel\", \"NIFTY_FUTURE_key\": \"NSE_FO|53001\"}' > config/config.json"
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="cd /opt/trendvision && echo '{\"ACCESS_TOKEN\": \"update-daily-in-admin-panel\", \"NIFTY_FUTURE_key\": \"NSE_FO|53001\"}' > config/config.json"
 
 # Step 9: Create environment file
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="cd /opt/trendvision && cat > .env << 'EOF'
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="cd /opt/trendvision && cat > .env << 'EOF'
 FLASK_SECRET_KEY=trendvision-enhanced-production-key-2024
 TRADING_DB=database/upstox_v3_live_trading.db
 USER_DB=database/users.db
@@ -42,7 +42,7 @@ SENDER_PASSWORD=lszl urfy lhlm vshz
 EOF"
 
 # Step 10: Create systemd service for the web application
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="sudo tee /etc/systemd/system/trendvision-web.service << 'EOF'
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="sudo tee /etc/systemd/system/trendvision-web.service << 'EOF'
 [Unit]
 Description=TrendVision Web Application - Enhanced Version
 After=network.target
@@ -67,7 +67,7 @@ WantedBy=multi-user.target
 EOF"
 
 # Step 11: Create systemd service for the trading pipeline
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="sudo tee /etc/systemd/system/trendvision-pipeline.service << 'EOF'
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="sudo tee /etc/systemd/system/trendvision-pipeline.service << 'EOF'
 [Unit]
 Description=TrendVision Trading Pipeline - Enhanced Version
 After=network.target
@@ -92,7 +92,7 @@ WantedBy=multi-user.target
 EOF"
 
 # Step 12: Create nginx configuration
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="sudo tee /etc/nginx/sites-available/trendvision2004.com << 'EOF'
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="sudo tee /etc/nginx/sites-available/trendvision2004.com << 'EOF'
 server {
     listen 80;
     server_name trendvision2004.com www.trendvision2004.com;
@@ -147,16 +147,16 @@ server {
 EOF"
 
 # Step 13: Enable nginx site and remove default
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="sudo ln -s /etc/nginx/sites-available/trendvision2004.com /etc/nginx/sites-enabled/ && sudo rm -f /etc/nginx/sites-enabled/default"
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="sudo ln -s /etc/nginx/sites-available/trendvision2004.com /etc/nginx/sites-enabled/ && sudo rm -f /etc/nginx/sites-enabled/default"
 
 # Step 14: Test nginx configuration and restart
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="sudo nginx -t && sudo systemctl restart nginx"
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="sudo nginx -t && sudo systemctl restart nginx"
 
 # Step 15: Apply application ownership and executable permissions
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="sudo chown -R trendvision:trendvision /opt/trendvision && sudo chmod +x /opt/trendvision/*.py"
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="sudo chown -R trendvision:trendvision /opt/trendvision && sudo chmod +x /opt/trendvision/*.py"
 
 # Step 16: Create logrotate configuration
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="sudo tee /etc/logrotate.d/trendvision << 'EOF'
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="sudo tee /etc/logrotate.d/trendvision << 'EOF'
 /opt/trendvision/*.log {
     daily
     missingok
@@ -173,19 +173,19 @@ gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="sudo
 EOF"
 
 # Step 17: Obtain and install SSL certificates
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="sudo certbot --nginx -d trendvision2004.com -d www.trendvision2004.com --email admin@trendvision2004.com --agree-tos --non-interactive --redirect"
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="sudo certbot --nginx -d trendvision2004.com -d www.trendvision2004.com --email admin@trendvision2004.com --agree-tos --non-interactive --redirect"
 
 # Step 18: Enable and start services
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="sudo systemctl daemon-reload && sudo systemctl enable trendvision-web trendvision-pipeline && sudo systemctl start trendvision-web trendvision-pipeline"
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="sudo systemctl daemon-reload && sudo systemctl enable trendvision-web trendvision-pipeline && sudo systemctl start trendvision-web trendvision-pipeline"
 
 # Step 19: Verify service status (web, pipeline, nginx)
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="sudo systemctl status trendvision-web --no-pager && sudo systemctl status trendvision-pipeline --no-pager && sudo systemctl status nginx --no-pager"
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="sudo systemctl status trendvision-web --no-pager && sudo systemctl status trendvision-pipeline --no-pager && sudo systemctl status nginx --no-pager"
 
 # Step 20: Review recent pipeline logs for startup confirmation
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="sudo journalctl -u trendvision-pipeline --since '5 minutes ago' --no-pager"
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="sudo journalctl -u trendvision-pipeline --since '5 minutes ago' --no-pager"
 
 # Step 21: Create admin helper script
-gcloud compute ssh instance-20250921-125329 --zone=asia-south1-b --command="cat > ~/trendvision-admin.sh << 'EOF'
+gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="cat > ~/trendvision-admin.sh << 'EOF'
 #!/bin/bash
 echo 'TrendVision Admin Commands'
 echo '1. Check web status: sudo systemctl status trendvision-web'

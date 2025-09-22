@@ -2,12 +2,12 @@
 
 set -euo pipefail
 
-VM_NAME="instance-20250921-162037"
+VM_NAME="instance-20250922-072947"
 ZONE="asia-south1-b"
 DOMAIN="trendvision2004.com"
 ALT_DOMAIN="www.trendvision2004.com"
-VM_IP="34.93.47.90"
-REPO_URL="https://github.com/Deepakmapalakaje/TrendVision.git"
+VM_IP="34.93.95.50"
+REPO_URL="https://github.com/Deepakmapalakaje/p2.git"
 
 log_step() { printf '\n==> %s\n' "$1"; }
 log_info() { printf '    %s\n' "$1"; }
@@ -74,7 +74,11 @@ run_remote "cd /opt/trendvision && cat > config/config.json << 'EOF'
 EOF"
 log_success "config/config.json created"
 
-log_step "Step 9: Create environment file"
+log_step "Step 9: Initialize databases"
+run_remote "cd /opt/trendvision && python3 init_database.py"
+log_success "Databases initialized"
+
+log_step "Step 10: Create environment file"
 run_remote "cd /opt/trendvision && cat > .env << 'EOF'
 FLASK_SECRET_KEY=trendvision-enhanced-production-key-2024
 TRADING_DB=database/upstox_v3_live_trading.db
@@ -87,7 +91,7 @@ SENDER_PASSWORD=lszl urfy lhlm vshz
 EOF"
 log_success ".env file created"
 
-log_step "Step 10: Create systemd service for the web application"
+log_step "Step 11: Create systemd service for the web application"
 run_remote "sudo tee /etc/systemd/system/trendvision-web.service << 'EOF'
 [Unit]
 Description=TrendVision Web Application - Enhanced Version
@@ -113,7 +117,7 @@ WantedBy=multi-user.target
 EOF"
 log_success "trendvision-web.service created"
 
-log_step "Step 11: Create systemd service for the trading pipeline"
+log_step "Step 12: Create systemd service for the trading pipeline"
 run_remote "sudo tee /etc/systemd/system/trendvision-pipeline.service << 'EOF'
 [Unit]
 Description=TrendVision Trading Pipeline - Enhanced Version
@@ -139,7 +143,7 @@ WantedBy=multi-user.target
 EOF"
 log_success "trendvision-pipeline.service created"
 
-log_step "Step 12: Configure nginx"
+log_step "Step 13: Configure nginx"
 run_remote "sudo tee /etc/nginx/sites-available/trendvision2004.com << 'EOF'
 server {
     listen 80;
@@ -195,19 +199,19 @@ server {
 EOF"
 log_success "nginx site file created"
 
-log_step "Step 13: Enable nginx site"
+log_step "Step 14: Enable nginx site"
 run_remote "sudo ln -sf /etc/nginx/sites-available/trendvision2004.com /etc/nginx/sites-enabled/trendvision2004.com && sudo rm -f /etc/nginx/sites-enabled/default"
 log_success "nginx site enabled"
 
-log_step "Step 14: Test nginx configuration and reload"
+log_step "Step 15: Test nginx configuration and reload"
 run_remote "sudo nginx -t && sudo systemctl reload nginx"
 log_success "nginx configuration reloaded"
 
-log_step "Step 15: Apply ownership and permissions"
+log_step "Step 16: Apply ownership and permissions"
 run_remote "sudo chown -R trendvision:trendvision /opt/trendvision && sudo chmod +x /opt/trendvision/*.py"
 log_success "Ownership and permissions updated"
 
-log_step "Step 16: Configure log rotation"
+log_step "Step 17: Configure log rotation"
 run_remote "sudo tee /etc/logrotate.d/trendvision << 'EOF'
 /opt/trendvision/*.log {
     daily
@@ -225,23 +229,23 @@ run_remote "sudo tee /etc/logrotate.d/trendvision << 'EOF'
 EOF"
 log_success "Logrotate configuration created"
 
-log_step "Step 17: Request SSL certificates"
+log_step "Step 18: Request SSL certificates"
 run_remote "sudo certbot --nginx -d $DOMAIN -d $ALT_DOMAIN --email admin@trendvision2004.com --agree-tos --non-interactive --redirect"
 log_success "SSL certificates installed"
 
-log_step "Step 18: Enable and start services"
+log_step "Step 19: Enable and start services"
 run_remote "sudo systemctl daemon-reload && sudo systemctl enable trendvision-web trendvision-pipeline && sudo systemctl start trendvision-web trendvision-pipeline"
 log_success "Services enabled and started"
 
-log_step "Step 19: Verify service status"
+log_step "Step 20: Verify service status"
 run_remote "sudo systemctl status trendvision-web --no-pager && sudo systemctl status trendvision-pipeline --no-pager && sudo systemctl status nginx --no-pager"
 log_success "Services are running"
 
-log_step "Step 20: Review recent pipeline logs"
+log_step "Step 21: Review recent pipeline logs"
 run_remote "sudo journalctl -u trendvision-pipeline --since '5 minutes ago' --no-pager"
 log_success "Recent pipeline logs displayed"
 
-log_step "Step 21: Create admin helper script"
+log_step "Step 22: Create admin helper script"
 run_remote "cat > ~/trendvision-admin.sh << 'EOF'
 #!/bin/bash
 echo 'TrendVision Admin Commands'
@@ -257,15 +261,15 @@ EOF
 chmod +x ~/trendvision-admin.sh"
 log_success "Admin helper script created"
 
-log_step "Step 22: Test HTTP to HTTPS redirect"
+log_step "Step 23: Test HTTP to HTTPS redirect"
 HTTP_STATUS=$(curl -I -s "http://$DOMAIN" | head -n 1 || true)
 log_info "HTTP response: $HTTP_STATUS"
 
-log_step "Step 23: Test HTTPS response"
+log_step "Step 24: Test HTTPS response"
 HTTPS_STATUS=$(curl -I -s "https://$DOMAIN" | head -n 1 || true)
 log_info "HTTPS response: $HTTPS_STATUS"
 
-log_step "Step 24: Test admin login page"
+log_step "Step 25: Test admin login page"
 ADMIN_STATUS=$(curl -I -s "https://$DOMAIN/admin/login" | head -n 1 || true)
 log_info "Admin response: $ADMIN_STATUS"
 

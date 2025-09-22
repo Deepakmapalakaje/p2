@@ -1,10 +1,10 @@
 #!/bin/bash
 # TrendVision Complete Deployment Script for Mumbai VM
-# VM: instance-20250921-070759 (34.93.47.90)
+# VM: instance-20250922-072947 (34.93.95.50)
 # Domain: trendvision2004.com
 
 echo "🚀 TrendVision Deployment Starting..."
-echo "📍 Target: Mumbai VM (34.93.47.90)"
+echo "📍 Target: Mumbai VM (34.93.95.50)"
 echo "🌐 Domain: trendvision2004.com"
 
 # Update system
@@ -23,7 +23,7 @@ cd /opt/trendvision
 
 # Clone repository (if not already copied)
 if [ ! -f "app.py" ]; then
-    git clone https://github.com/Deepakmapalakaje/TrendVision.git .
+    git clone https://github.com/Deepakmapalakaje/p2.git .
 fi
 
 # Create virtual environment
@@ -51,6 +51,9 @@ TRADING_DB=database/upstox_v3_live_trading.db
 USER_DB=database/users.db
 PORT=8080
 FLASK_ENV=production
+RUN_PIPELINE=1
+SENDER_EMAIL=dscatreeing@gmail.com
+SENDER_PASSWORD=lszl urfy lhlm vshz
 EOF
 
 # Create systemd service for web app

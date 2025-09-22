@@ -73,7 +73,7 @@ echo "📊 Pipeline Service Status: $PIPELINE_STATUS"
 
 if [ "$WEB_STATUS" == "active" ] && [ "$PIPELINE_STATUS" == "active" ]; then
     echo "🎉 SUCCESS: All services started successfully!"
-    echo "🌐 Web Access: http://34.93.47.90"
+    echo "🌐 Web Access: http://34.93.95.50"
     echo "🔒 HTTPS Access: https://trendvision2004.com"
     echo "🔑 Admin Panel: https://trendvision2004.com/admin/login"
     echo "👤 Admin Credentials: dsar / dsar"
