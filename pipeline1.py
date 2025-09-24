@@ -4,7 +4,7 @@ import ssl
 import os
 import websockets
 import requests
-import pandas as pd
+import csv
 from google.protobuf.json_format import MessageToDict
 import logging
 from datetime import datetime, timezone, timedelta, date, time as dt_time
@@ -66,65 +66,101 @@ def auto_select_options(csv_path):
     """Auto-select 60 options based on NIFTY level rounded to nearest 50"""
     try:
         if not os.path.exists(csv_path):
-            print(f"CSV file not found: {csv_path}")
-            return {}
-        df = pd.read_csv(csv_path)
-        if df.empty:
-            print("Empty CSV file")
-            return {}
+            logger.warning(f"CSV file not found: {csv_path}")
+            return [], 0
 
-        # Get current NIFTY level from CSV (assume column exists)
-        all_strikes = sorted(df['strike'].unique(), key=float)
-        ce_options = df[df['option_type'] == 'CE']
-        pe_options = df[df['option_type'] == 'PE']
+        with open(csv_path, 'r', encoding='utf-8-sig', newline='') as csv_file:
+            reader = csv.DictReader(csv_file)
+            rows = []
+            for row in reader:
+                instrument_key = (row.get('instrument_key') or '').strip()
+                option_type = (row.get('option_type') or '').strip().upper()
+                if not instrument_key or option_type not in {'CE', 'PE'}:
+                    continue
 
-        if ce_options.empty or pe_options.empty:
+                strike_value = row.get('strike')
+                last_price_value = row.get('last_price', 0)
+                try:
+                    strike = float(str(strike_value).replace(',', ''))
+                except (TypeError, ValueError):
+                    continue
+                try:
+                    last_price = float(str(last_price_value).replace(',', ''))
+                except (TypeError, ValueError):
+                    last_price = 0.0
+
+                normalized = dict(row)
+                normalized['instrument_key'] = instrument_key
+                normalized['option_type'] = option_type
+                normalized['strike'] = strike
+                normalized['last_price'] = last_price
+                rows.append(normalized)
+
+        if not rows:
+            logger.warning("No option rows found in CSV")
+            return [], 0
+
+        ce_rows = [r for r in rows if r['option_type'] == 'CE']
+        pe_rows = [r for r in rows if r['option_type'] == 'PE']
+
+        if not ce_rows or not pe_rows:
             logger.error("CE or PE options not found in CSV")
-            return {}
+            return [], 0
 
-        # Find ATM strike by minimizing call-put spread
+        def map_by_strike(option_rows):
+            mapping = {}
+            for opt in option_rows:
+                mapping.setdefault(opt['strike'], opt)
+            return mapping
+
+        ce_by_strike = map_by_strike(ce_rows)
+        pe_by_strike = map_by_strike(pe_rows)
+
         atm_options = []
-        for strike in ce_options['strike'].unique():
-            if strike in pe_options['strike'].values:
-                ce_price = ce_options[ce_options['strike'] == strike]['last_price'].iloc[0]
-                pe_price = pe_options[pe_options['strike'] == strike]['last_price'].iloc[0]
-                spread = abs(ce_price - pe_price)
-                atm_options.append((strike, spread))
+        for strike, ce_row in ce_by_strike.items():
+            pe_row = pe_by_strike.get(strike)
+            if pe_row is None:
+                continue
+            spread = abs(ce_row['last_price'] - pe_row['last_price'])
+            atm_options.append((strike, spread))
 
-        atm_strike = min(atm_options, key=lambda x: x[1])[0] if atm_options else ce_options['strike'].iloc[len(ce_options) // 2]
+        if atm_options:
+            atm_strike = min(atm_options, key=lambda x: x[1])[0]
+        else:
+            ce_strikes_sorted = sorted(ce_by_strike.keys())
+            if not ce_strikes_sorted:
+                logger.warning("Unable to determine ATM strike from CSV")
+                return [], 0
+            atm_strike = ce_strikes_sorted[len(ce_strikes_sorted) // 2]
 
-        # Round to nearest multiple of 50
         current_level = round(float(atm_strike) / 50) * 50
-        logger.info(f"🎯 Auto-selected NIFTY level: {current_level} (ATM: {atm_strike})")
+        logger.info(f"dYZ_ Auto-selected NIFTY level: {current_level} (ATM: {atm_strike})")
 
-        # Select 30 CE and 30 PE around current level
-        ce_selected = []
-        pe_selected = []
+        all_strikes = sorted(set(list(ce_by_strike.keys()) + list(pe_by_strike.keys())))
+        ce_target_strikes = set([s for s in all_strikes if s >= current_level][:30])
+        pe_target_strikes = set(list(reversed([s for s in all_strikes if s <= current_level]))[:30])
 
-        # CE: select strikes above current_level (OTM)
-        higher_strikes = sorted([s for s in all_strikes if s >= current_level])
-        ce_selected = df[(df['option_type'] == 'CE') & (df['strike'].isin(higher_strikes[:30]))]
+        ce_selected = [row for row in ce_rows if row['strike'] in ce_target_strikes]
+        pe_selected = [row for row in pe_rows if row['strike'] in pe_target_strikes]
 
-        # PE: select strikes below current_level (OTM)
-        lower_strikes = sorted([s for s in all_strikes if s <= current_level], reverse=True)
-        pe_selected = df[(df['option_type'] == 'PE') & (df['strike'].isin(lower_strikes[:30]))]
-
-        selected = pd.concat([ce_selected, pe_selected]).sort_values(['option_type', 'strike'])
+        selected = ce_selected + pe_selected
+        selected.sort(key=lambda r: (r['option_type'], r['strike']))
 
         ce_count = len(ce_selected)
         pe_count = len(pe_selected)
-        logger.info(f"✅ Selected: {ce_count} CE + {pe_count} PE = {len(selected)} options")
+        logger.info(f"�o. Selected: {ce_count} CE + {pe_count} PE = {len(selected)} options")
 
         return selected, current_level
     except Exception as e:
         logger.error(f"Error in auto_select_options: {e}")
-        return pd.DataFrame(), 0
+        return [], 0
+
 
 def load_dynamic_instruments():
     """Load dynamic instruments from CSV"""
     selected_options, current_level = auto_select_options('extracted_data.csv')
 
-    if selected_options.empty:
+    if not selected_options:
         logger.warning("No options selected, falling back to minimal config")
         return {
             "NIFTY_INDEX": {
@@ -149,7 +185,7 @@ def load_dynamic_instruments():
             }
         }
 
-    INSTRUMENTS = {
+    instruments = {
         "NIFTY_INDEX": {
             "key": "NSE_INDEX|Nifty 50",
             "type": "INDEX",
@@ -172,33 +208,36 @@ def load_dynamic_instruments():
         }
     }
 
-    # Add selected options
-    option_counter = {}
-    for idx, row in selected_options.iterrows():
-        option_type = row['option_type']
-        strike = row['strike']
-        instrument_key = row['instrument_key']
+    for row in selected_options:
+        option_type = row.get('option_type')
+        strike = row.get('strike')
+        instrument_key = row.get('instrument_key')
+        if option_type not in {'CE', 'PE'} or not instrument_key or strike is None:
+            continue
 
-        if option_type not in option_counter:
-            option_counter[option_type] = 0
-        option_counter[option_type] += 1
+        try:
+            strike_value = float(strike)
+        except (TypeError, ValueError):
+            continue
 
-        name = f"{option_type}_{strike}"
-        INSTRUMENTS[name] = {
+        strike_label = int(strike_value) if strike_value.is_integer() else round(strike_value, 2)
+        name = f"{option_type}_{strike_label}"
+
+        instruments[name] = {
             "key": instrument_key,
             "type": "OPTION",
             "option_type": option_type,
-            "strike_price": strike,
+            "strike_price": strike_value,
             "has_volume": True,
             "process_delta": True,
             "process_heikin_ashi": False,
             "process_indicators": False,
             "trading_enabled": True,
-            "table_suffix": f"{option_type.lower()}_{strike}"
+            "table_suffix": f"{option_type.lower()}_{strike_label}"
         }
 
-    logger.info(f"Loaded {len(INSTRUMENTS)} total instruments: Index=1, Future=1, Options={len(selected_options)}")
-    return INSTRUMENTS
+    logger.info(f"Loaded {len(instruments)} total instruments: Index=1, Future=1, Options={len(selected_options)}")
+    return instruments
 
 # Instruments setup (Dynamic from CSV)
 INSTRUMENTS = load_dynamic_instruments()
@@ -1886,10 +1925,34 @@ class BuySignalGenerator:
                     logger.info(f"🔵 NEUTRAL SIGNAL [-→0]: BUY CE {itm_options['itm_ce']['strike']} | Cash: {current_cash:.0f} (near min: {min_cash:.0f})")
 
 # === OPTIONS CASH FLOW CALCULATOR ===
+
 class OptionsTickCashFlowCalculator:
     """Cash flow calculator for options based on VTT changes"""
+
     def __init__(self, selected_options_df):
-        self.options = {row['instrument_key']: row for idx, row in selected_options_df.iterrows()}
+        if hasattr(selected_options_df, "iterrows"):
+            option_rows = [row.to_dict() for _, row in selected_options_df.iterrows()]
+        else:
+            option_rows = list(selected_options_df or [])
+
+        self.options = {}
+        for row in option_rows:
+            instrument_key = row.get('instrument_key')
+            if not instrument_key:
+                continue
+
+            option_type = (row.get('option_type') or '').strip().upper()
+            strike_value = row.get('strike')
+            try:
+                strike_value = float(strike_value)
+            except (TypeError, ValueError):
+                strike_value = 0.0
+
+            normalized = dict(row)
+            normalized['option_type'] = option_type
+            normalized['strike'] = strike_value
+            self.options[instrument_key] = normalized
+
         # 1-minute data
         self.cash = 0.0
         self.min_cash = float('inf')
@@ -1906,7 +1969,7 @@ class OptionsTickCashFlowCalculator:
         self.min_cash_5min = float('inf')
         self.max_cash_5min = float('-inf')
         self.current_5min_start = None
-        logger.info("✅ Cash Flow Calculator initialized (1-min & 5-min)")
+        logger.info("Cash Flow Calculator initialized (1-min & 5-min)")
 
     def process_option_tick(self, instrument_key, ltp, vtt, timestamp):
         """Process individual option tick and calculate cash flow using VTT changes"""
@@ -2109,13 +2172,13 @@ async def websocket_v3_connection_manager():
 
     # Initialize cash flow calculator with selected options
     selected_options, _ = auto_select_options('extracted_data.csv')
-    if not selected_options.empty:
+    if selected_options:
         cash_flow_calculator = OptionsTickCashFlowCalculator(selected_options)
         # Initialize buy signal generator
         buy_signal_generator = BuySignalGenerator(db_manager, cash_flow_calculator)
         # Initialize option tracker
         option_tracker = OptionTracker(db_manager)
-        logger.info(f"✅ Cash flow calculator initialized with {len(selected_options)} options")
+        logger.info(f"Cash flow calculator initialized with {len(selected_options)} options")
         logger.info("✅ Buy signal generator initialized")
         logger.info("✅ Option tracker initialized")
     else:
