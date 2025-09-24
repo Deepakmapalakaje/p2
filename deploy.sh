@@ -159,6 +159,7 @@ sudo tee /etc/logrotate.d/trendvision << 'EOF'
     compress
     delaycompress
     notifempty
+    copytruncate
     create 644 trendvision trendvision
 }
 EOF
@@ -168,3 +169,4 @@ echo "🌐 Access: https://trendvision2004.com"
 echo "🔧 Admin: https://trendvision2004.com/admin/login (dsar/dsar)"
 echo "📊 Status: sudo systemctl status trendvision-web trendvision-pipeline"
 </content>
+

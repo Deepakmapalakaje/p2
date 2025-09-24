@@ -220,7 +220,10 @@ def ensure_indexes(conn):
         ('idx_latest_candles_timestamp', 'latest_candles', 'CREATE INDEX IF NOT EXISTS idx_latest_candles_timestamp ON latest_candles(timestamp)'),
         ('idx_latest_candles_instrument_interval', 'latest_candles', 'CREATE INDEX IF NOT EXISTS idx_latest_candles_instrument_interval ON latest_candles(instrument_key, candle_interval)'),
         ('idx_table_registry_date_instrument', 'table_registry', 'CREATE INDEX IF NOT EXISTS idx_table_registry_date_instrument ON table_registry(trade_date, instrument_key)'),
-        ('idx_table_registry_data_type', 'table_registry', 'CREATE INDEX IF NOT EXISTS idx_table_registry_data_type ON table_registry(data_type)')
+        ('idx_table_registry_data_type', 'table_registry', 'CREATE INDEX IF NOT EXISTS idx_table_registry_data_type ON table_registry(data_type)'),
+        ('idx_cash_flow_timestamp', 'options_cash_flow', 'CREATE INDEX IF NOT EXISTS idx_cash_flow_timestamp ON options_cash_flow(timestamp)'),
+        ('idx_buy_signals_timestamp', 'buy_signals', 'CREATE INDEX IF NOT EXISTS idx_buy_signals_timestamp ON buy_signals(timestamp)'),
+        ('idx_option_tracking_signal', 'option_tracking', 'CREATE INDEX IF NOT EXISTS idx_option_tracking_signal ON option_tracking(signal_id)')
     ]
 
     for idx_name, table, create_stmt in required_indexes:

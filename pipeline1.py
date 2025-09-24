@@ -4,6 +4,7 @@ import ssl
 import os
 import websockets
 import requests
+import pandas as pd
 from google.protobuf.json_format import MessageToDict
 import logging
 from datetime import datetime, timezone, timedelta, date, time as dt_time
@@ -14,7 +15,6 @@ import sqlite3
 import time
 from dataclasses import dataclass
 from typing import Optional, List, Tuple, Dict
-import threading
 import threading
 try:
     from dotenv import load_dotenv

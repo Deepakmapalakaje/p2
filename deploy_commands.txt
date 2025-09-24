@@ -164,13 +164,11 @@ gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="sudo
     compress
     delaycompress
     notifempty
+    copytruncate
     create 644 trendvision trendvision
-    postrotate
-        systemctl reload trendvision-web
-        systemctl reload trendvision-pipeline
-    endscript
 }
 EOF"
+
 
 # Step 17: Obtain and install SSL certificates
 gcloud compute ssh instance-20250922-072947 --zone=asia-south1-b --command="sudo certbot --nginx -d trendvision2004.com -d www.trendvision2004.com --email admin@trendvision2004.com --agree-tos --non-interactive --redirect"
@@ -209,3 +207,4 @@ curl -I https://trendvision2004.com
 curl -I https://trendvision2004.com/admin/login
 
 # Post-deployment: Log in to the admin panel, update the daily access token, fetch instruments, extract options, and confirm the pipeline is running.
+

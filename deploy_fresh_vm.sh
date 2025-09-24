@@ -220,11 +220,8 @@ run_remote "sudo tee /etc/logrotate.d/trendvision << 'EOF'
     compress
     delaycompress
     notifempty
+    copytruncate
     create 644 trendvision trendvision
-    postrotate
-        systemctl reload trendvision-web
-        systemctl reload trendvision-pipeline
-    endscript
 }
 EOF"
 log_success "Logrotate configuration created"
@@ -281,3 +278,4 @@ log_info "Credentials: dsar / dsar"
 log_info "Next: update the daily access token, fetch instruments, extract options, and monitor the pipeline."
 
 log_success "TrendVision deployment completed"
+

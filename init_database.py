@@ -104,21 +104,22 @@ def init_trading_database():
     CREATE TABLE IF NOT EXISTS table_registry (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         table_name TEXT UNIQUE NOT NULL,
+        instrument_key TEXT NOT NULL,
         data_type TEXT NOT NULL,
-        date_created DATE DEFAULT CURRENT_DATE,
-        last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+        trade_date DATE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     ''')
-    logger.info("✅ Table registry created")
+    logger.info("�o. Table registry created")
 
     # Create trend table
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS trend (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp TIMESTAMP NOT NULL,
-        interval_type TEXT NOT NULL,
+        candle_interval TEXT NOT NULL,
         instrument_key TEXT NOT NULL,
-        trend_value INTEGER,
+        trend_value INTEGER NOT NULL,
         buy_recommendation TEXT,
         entry_price REAL,
         target REAL,
@@ -127,120 +128,120 @@ def init_trading_database():
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
     ''')
-    logger.info("✅ Trend table created")
+    logger.info("�o. Trend table created")
 
     # Create latest_candles table with all required columns
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS latest_candles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        instrument_key TEXT NOT NULL,
-        instrument_name TEXT,
-        instrument_type TEXT,
+        instrument_key TEXT UNIQUE NOT NULL,
+        instrument_name TEXT NOT NULL,
+        instrument_type TEXT NOT NULL,
         strike_price REAL,
         option_type TEXT,
         timestamp TIMESTAMP NOT NULL,
-        open REAL,
-        high REAL,
-        low REAL,
-        close REAL,
-        volume INTEGER,
-        atp REAL,
-        vwap REAL,
-        price_change REAL,
-        price_change_pct REAL,
-        delta INTEGER,
-        delta_pct REAL,
-        min_delta INTEGER,
-        max_delta INTEGER,
-        buy_volume INTEGER,
-        sell_volume INTEGER,
-        tick_count INTEGER,
-        vtt_open REAL,
-        vtt_close REAL,
-        candle_interval TEXT,
-        trend_value INTEGER,
+        open REAL NOT NULL,
+        high REAL NOT NULL,
+        low REAL NOT NULL,
+        close REAL NOT NULL,
+        volume INTEGER NOT NULL,
+        atp REAL NOT NULL,
+        vwap REAL DEFAULT 0,
+        price_change REAL DEFAULT 0,
+        price_change_pct REAL DEFAULT 0,
+        delta INTEGER DEFAULT 0,
+        delta_pct REAL DEFAULT 0,
+        min_delta INTEGER DEFAULT 0,
+        max_delta INTEGER DEFAULT 0,
+        buy_volume INTEGER DEFAULT 0,
+        sell_volume INTEGER DEFAULT 0,
+        tick_count INTEGER DEFAULT 0,
+        vtt_open REAL DEFAULT 0,
+        vtt_close REAL DEFAULT 0,
+        candle_interval TEXT NOT NULL,
+        trend_value INTEGER DEFAULT 0,
         buy_recommendation TEXT,
         entry_price REAL,
         target REAL,
         sl REAL,
         profit_loss REAL,
-        prev_close REAL,
-        intraday_high REAL,
-        intraday_low REAL,
+        prev_close REAL DEFAULT 0,
+        intraday_high REAL DEFAULT 0,
+        intraday_low REAL DEFAULT 0,
         last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     ''')
-    logger.info("✅ Latest candles table created")
+    logger.info("�o. Latest candles table created")
 
     # Create options_cash_flow table
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS options_cash_flow (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        timestamp TIMESTAMP NOT NULL,
+        timestamp TEXT NOT NULL,
         interval_type TEXT NOT NULL,
-        cash REAL DEFAULT 0.0,
-        min_cash REAL DEFAULT 0.0,
-        max_cash REAL DEFAULT 0.0,
+        cash REAL NOT NULL,
+        min_cash REAL NOT NULL,
+        max_cash REAL NOT NULL,
+        total_options INTEGER NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
     ''')
-    logger.info("✅ Options cash flow table created")
+    logger.info("�o. Options cash flow table created")
 
     # Create buy_signals table
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS buy_signals (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        timestamp TIMESTAMP NOT NULL,
+        timestamp TEXT NOT NULL,
         signal_type TEXT NOT NULL,
         option_key TEXT NOT NULL,
         strike REAL NOT NULL,
-        entry_price REAL,
-        target REAL,
-        sl REAL,
+        entry_price REAL DEFAULT 0,
+        target REAL DEFAULT 0,
+        sl REAL DEFAULT 0,
         status TEXT DEFAULT 'ACTIVE',
-        cash_flow REAL DEFAULT 0.0,
+        cash_flow REAL DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
     ''')
-    logger.info("✅ Buy signals table created")
+    logger.info("�o. Buy signals table created")
 
     # Create option_tracking table
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS option_tracking (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        option_key TEXT NOT NULL,
-        strike REAL NOT NULL,
-        option_type TEXT NOT NULL,
-        entry_timestamp TIMESTAMP NOT NULL,
-        exit_timestamp TIMESTAMP,
-        entry_price REAL,
-        exit_price REAL,
-        profit_loss REAL,
-        status TEXT DEFAULT 'ACTIVE',
+        signal_id INTEGER REFERENCES buy_signals(id),
+        timestamp TEXT NOT NULL,
+        current_price REAL NOT NULL,
+        pnl REAL DEFAULT 0,
+        status TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
     ''')
-    logger.info("✅ Option tracking table created")
+    logger.info("�o. Option tracking table created")
 
     # Create indexes for better performance
     indexes = [
         ("idx_trend_timestamp", "trend", "timestamp"),
-        ("idx_trend_interval", "trend", "interval_type"),
+        ("idx_trend_interval", "trend", "candle_interval"),
         ("idx_latest_candles_instrument", "latest_candles", "instrument_key"),
-        ("idx_latest_candles_updated", "latest_candles", "last_updated"),
+        ("idx_latest_candles_updated", "latest_candles", "updated_at"),
         ("idx_latest_candles_timestamp", "latest_candles", "timestamp"),
-        ("idx_latest_candles_instrument_interval", "latest_candles", "instrument_key, timestamp"),
-        ("idx_table_registry_date_instrument", "table_registry", "date_created"),
+        ("idx_latest_candles_instrument_interval", "latest_candles", "instrument_key, candle_interval"),
+        ("idx_table_registry_date_instrument", "table_registry", "trade_date, instrument_key"),
         ("idx_table_registry_data_type", "table_registry", "data_type"),
+        ("idx_cash_flow_timestamp", "options_cash_flow", "timestamp"),
+        ("idx_buy_signals_timestamp", "buy_signals", "timestamp"),
+        ("idx_option_tracking_signal", "option_tracking", "signal_id"),
     ]
 
     for index_name, table_name, columns in indexes:
         try:
             cursor.execute(f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name} ({columns})")
-            logger.info(f"✅ Index {index_name} created")
+            logger.info(f"�o. Index {index_name} created")
         except Exception as e:
-            logger.warning(f"⚠️ Could not create index {index_name}: {e}")
+            logger.warning(f"�s��,? Could not create index {index_name}: {e}")
 
     # Insert sample data for testing
     try:
@@ -248,30 +249,30 @@ def init_trading_database():
         cursor.execute("SELECT COUNT(*) FROM options_cash_flow")
         if cursor.fetchone()[0] == 0:
             sample_cash_flow = [
-                (datetime.now().isoformat(), '1min', 100000.0, 50000.0, 150000.0),
-                (datetime.now().isoformat(), '5min', 250000.0, 100000.0, 300000.0),
+                (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '1min', 100000.0, 50000.0, 150000.0, 60),
+                (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '5min', 250000.0, 100000.0, 300000.0, 60),
             ]
             cursor.executemany(
-                "INSERT INTO options_cash_flow (timestamp, interval_type, cash, min_cash, max_cash) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO options_cash_flow (timestamp, interval_type, cash, min_cash, max_cash, total_options) VALUES (?, ?, ?, ?, ?, ?)",
                 sample_cash_flow
             )
-            logger.info("✅ Sample cash flow data inserted")
+            logger.info("�o. Sample cash flow data inserted")
 
         # Sample trend data
         cursor.execute("SELECT COUNT(*) FROM trend")
         if cursor.fetchone()[0] == 0:
             sample_trends = [
-                (datetime.now().isoformat(), '1min', 'NSE_INDEX|Nifty 50', 1, 'BUY', 25000.0, 25200.0, 24800.0, 0.0),
-                (datetime.now().isoformat(), '5min', 'NSE_INDEX|Nifty 50', -1, 'SELL', 25100.0, 25300.0, 24900.0, 0.0),
+                (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '1min', 'NSE_INDEX|Nifty 50', 1, 'BUY', 25000.0, 25200.0, 24800.0, 0.0),
+                (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '5min', 'NSE_INDEX|Nifty 50', -1, 'SELL', 25100.0, 25300.0, 24900.0, 0.0),
             ]
             cursor.executemany(
-                "INSERT INTO trend (timestamp, interval_type, instrument_key, trend_value, buy_recommendation, entry_price, target, sl, profit_loss) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO trend (timestamp, candle_interval, instrument_key, trend_value, buy_recommendation, entry_price, target, sl, profit_loss) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 sample_trends
             )
-            logger.info("✅ Sample trend data inserted")
+            logger.info("�o. Sample trend data inserted")
 
     except Exception as e:
-        logger.warning(f"⚠️ Could not insert sample data: {e}")
+        logger.warning(f"�s��,? Could not insert sample data: {e}")
 
     conn.commit()
     conn.close()
