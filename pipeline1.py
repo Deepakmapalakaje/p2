@@ -26,20 +26,34 @@ from zoneinfo import ZoneInfo  # For IST
 
 # === LOGGING SETUP (MOVED UP FOR EARLY IMPORT USAGE) ===
 def setup_logging():
-    log_format = '%(asctime)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s'
-    logging.basicConfig(
-        level=logging.INFO,
-        format=log_format,
-        handlers=[
-            logging.FileHandler('upstox_v3_trading.log', encoding='utf-8'),
-            logging.StreamHandler(sys.stdout)
-        ]
-    )
-    # Fix Unicode encoding for Windows console
-    for handler in logging.getLogger().handlers:
-        if isinstance(handler, logging.StreamHandler):
-            handler.setStream(sys.stdout)
-    return logging.getLogger('UpstoxTradingV3')
+    log_locations = [
+        "logs/upstox_v3_trading.log",
+        "/tmp/upstox_v3_trading.log",
+    ]
+
+    os.makedirs("logs", exist_ok=True)
+
+    for location in log_locations:
+        try:
+            file_handler = logging.FileHandler(location, encoding="utf-8")
+            logging.basicConfig(
+                level=logging.INFO,
+                format="%(asctime)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s",
+                handlers=[
+                    file_handler,
+                    logging.StreamHandler(sys.stdout)
+                ]
+            )
+            for handler in logging.getLogger().handlers:
+                if isinstance(handler, logging.StreamHandler):
+                    handler.setStream(sys.stdout)
+            logger = logging.getLogger("UpstoxTradingV3")
+            logger.info(f"Logging initialized: {location}")
+            return logger
+        except PermissionError:
+            continue
+
+    raise SystemExit("ERROR: Unable to initialize logging in any location")
 
 logger = setup_logging()
 
