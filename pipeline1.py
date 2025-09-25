@@ -14,8 +14,9 @@ from collections import deque
 import sqlite3
 import time
 from dataclasses import dataclass
-from typing import Optional, List, Tuple, Dict
+from typing import Optional, List, Tuple, Dict, Any
 import threading
+from pathlib import Path
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -25,35 +26,29 @@ except ImportError:
 from zoneinfo import ZoneInfo  # For IST
 
 # === LOGGING SETUP (MOVED UP FOR EARLY IMPORT USAGE) ===
+BASE_DIR = Path(__file__).resolve().parent
+LOG_DIR = BASE_DIR / "logs"
+LOG_FILE = LOG_DIR / "upstox_v3_trading.log"
+
 def setup_logging():
-    log_locations = [
-        "logs/upstox_v3_trading.log",
-        "/tmp/upstox_v3_trading.log",
-    ]
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-    os.makedirs("logs", exist_ok=True)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s",
+        handlers=[
+            logging.FileHandler(LOG_FILE, encoding="utf-8"),
+            logging.StreamHandler(sys.stdout),
+        ],
+    )
 
-    for location in log_locations:
-        try:
-            file_handler = logging.FileHandler(location, encoding="utf-8")
-            logging.basicConfig(
-                level=logging.INFO,
-                format="%(asctime)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s",
-                handlers=[
-                    file_handler,
-                    logging.StreamHandler(sys.stdout)
-                ]
-            )
-            for handler in logging.getLogger().handlers:
-                if isinstance(handler, logging.StreamHandler):
-                    handler.setStream(sys.stdout)
-            logger = logging.getLogger("UpstoxTradingV3")
-            logger.info(f"Logging initialized: {location}")
-            return logger
-        except PermissionError:
-            continue
+    for handler in logging.getLogger().handlers:
+        if isinstance(handler, logging.StreamHandler):
+            handler.setStream(sys.stdout)
 
-    raise SystemExit("ERROR: Unable to initialize logging in any location")
+    logger = logging.getLogger("UpstoxTradingV3")
+    logger.info(f"Logging initialized at {LOG_FILE}")
+    return logger
 
 logger = setup_logging()
 
