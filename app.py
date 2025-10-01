@@ -20,6 +20,22 @@ TRADING_DB = os.getenv("TRADING_DB", "database/upstox_v3_live_trading.db")
 USER_DB = os.getenv("USER_DB", "database/users.db")
 IST = ZoneInfo("Asia/Kolkata")
 
+# Load configuration
+def load_config():
+    """Load configuration from config.json"""
+    config_path = 'config/config.json'
+    try:
+        with open(config_path, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logger.warning(f"Config file not found: {config_path}")
+        return {}
+    except json.JSONDecodeError as e:
+        logger.error(f"Error parsing config file: {e}")
+        return {}
+
+config = load_config()
+
 # Global variables
 pipeline_running = False
 
@@ -710,6 +726,9 @@ def create_app():
                         logger.error(f"Failed to send OTP email: {email_error}")
                         # Still allow the process to continue for local development
                         logger.info(f"OTP for password reset: {reset_otp} (Email: {email}) - Check console logs")
+                        # Show OTP in flash message for development (remove in production)
+                        flash(f"Email service unavailable. Your reset code is: {reset_otp}", "warning")
+                        return redirect(url_for("forgot_password"))
 
                     flash("Reset code sent to your email. Please check your inbox.", "success")
                     return redirect(url_for("forgot_password"))
