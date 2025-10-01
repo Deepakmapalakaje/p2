@@ -25,19 +25,22 @@ def load_config():
     """Load configuration from config.json"""
     config_path = 'config/config.json'
     try:
-        with open(config_path, 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logger.warning(f"Config file not found: {config_path}")
-        return {}
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                return json.load(f)
+        else:
+            logger.warning(f"Config file not found: {config_path}")
+            return {}
     except json.JSONDecodeError as e:
         logger.error(f"Error parsing config file: {e}")
         return {}
-
-config = load_config()
+    except Exception as e:
+        logger.error(f"Error loading config: {e}")
+        return {}
 
 # Global variables
 pipeline_running = False
+config = {}
 
 # Create user database
 def init_user_db():
@@ -678,7 +681,8 @@ def create_app():
                         from email.mime.multipart import MIMEMultipart
 
                         # Load email configuration
-                        email_config = config.get('EMAIL_CONFIG', {})
+                        config_data = load_config()
+                        email_config = config_data.get('EMAIL_CONFIG', {})
                         enable_email = email_config.get('ENABLE_EMAIL', False)
 
                         if enable_email:
