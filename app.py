@@ -1212,10 +1212,11 @@ def create_app():
 # Initialize user database when module is imported
 init_user_db()
 
+# Create app instance for WSGI servers (Gunicorn, GAE, etc.)
+app = create_app()
+
 # --- Main Execution ---
 if __name__ == "__main__":
-    app = create_app()
-
     # Get configuration from environment variables
     host = os.getenv("HOST", "0.0.0.0")  # Listen on all interfaces for VM deployment
     port = int(os.getenv("PORT", 8080))
